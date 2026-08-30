@@ -31,18 +31,20 @@ write-spec ──► ts-feature-dev ──┬──► ts-typesafety
 ```sh
 git clone git@github.com:iNeoO/skills.git
 cd skills
-./install.sh          # symlinks each skill into ~/.claude/skills (repo stays the source of truth)
+./install.sh              # Claude Code: symlinks into ~/.claude/skills [default]
+./install.sh --codex      # Codex: symlinks into ~/.codex/skills
+./install.sh --agents     # shared cross-tool location: ~/.agents/skills
 ```
+
+The `SKILL.md` format is the same across tools, so the same files serve Claude Code and Codex. Targets are cumulative (`./install.sh --claude --codex`) and the repo stays the source of truth — updating is just `git pull`.
 
 Options:
 
 ```sh
-./install.sh --copy    # copy instead of symlink (no link back to the repo)
-./install.sh --force   # replace existing skills with the same name (backs them up to *.bak)
-./install.sh --target <dir>   # install somewhere else (default: ~/.claude/skills)
+./install.sh --copy           # copy instead of symlink (no link back to the repo)
+./install.sh --force          # replace existing skills with the same name (backs them up to *.bak)
+./install.sh --target <dir>   # install into a custom directory
 ```
-
-With the default symlink mode, updating is just `git pull`.
 
 ## Usage
 
