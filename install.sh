@@ -10,6 +10,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$REPO_DIR/skills"
 MODE="link"
 FORCE=0
+DOTFILES=0
 TARGETS=()
 
 usage() {
@@ -20,6 +21,7 @@ usage() {
   echo "  --target <dir> install into a custom directory"
   echo "  --copy         copy skills instead of symlinking"
   echo "  --force        replace existing skills (existing dirs backed up to <name>.bak)"
+  echo "  --dotfiles     also link claude/ (CLAUDE.md, commands, scripts) into ~/.claude"
   echo "Targets are cumulative: '$0 --claude --codex' installs into both."
   exit "${1:-0}"
 }
@@ -32,6 +34,7 @@ while [[ $# -gt 0 ]]; do
     --target) TARGETS+=("${2:?--target needs a directory}"); shift 2 ;;
     --copy) MODE="copy"; shift ;;
     --force) FORCE=1; shift ;;
+    --dotfiles) DOTFILES=1; shift ;;
     -h|--help) usage ;;
     *) echo "Unknown option: $1"; usage 1 ;;
   esac
@@ -82,3 +85,31 @@ for TARGET_DIR in "${TARGETS[@]}"; do
 done
 
 [[ "$MODE" == "link" ]] && echo "Update later with: git -C $REPO_DIR pull"
+
+# ---------------------------------------------------------------------------
+# --dotfiles: link the personal Claude Code config (claude/) into ~/.claude
+#   ~/.claude/CLAUDE.md            -> claude/CLAUDE.md   (personal part only)
+#   ~/.claude/commands/<name>.md   -> claude/commands/<name>.md
+#   ~/.claude/scripts/<name>/      -> claude/scripts/<name>/
+# Company-specific sections of an existing CLAUDE.md are moved to
+# ~/.claude/CLAUDE.work.md (imported by claude/CLAUDE.md, never committed here).
+# ---------------------------------------------------------------------------
+if [[ $DOTFILES -eq 1 ]]; then
+  CLAUDE_DIR="$HOME/.claude"
+  echo "==> $CLAUDE_DIR (dotfiles)"
+  link_one() { # src dest
+    local src="$1" dest="$2"
+    if [[ -L "$dest" && "$(readlink -f "$dest")" == "$(readlink -f "$src")" ]]; then echo "  ok       $dest"; return; fi
+    if [[ -e "$dest" || -L "$dest" ]]; then mv "$dest" "${dest}.bak"; echo "  backup   $dest -> ${dest}.bak"; fi
+    mkdir -p "$(dirname "$dest")"; ln -s "$src" "$dest"; echo "  linked   $dest"
+  }
+  if [[ -f "$CLAUDE_DIR/CLAUDE.md" && ! -L "$CLAUDE_DIR/CLAUDE.md" && ! -f "$CLAUDE_DIR/CLAUDE.work.md" ]]; then
+    n="$(grep -n -m1 -E '^# .*Company Context' "$CLAUDE_DIR/CLAUDE.md" | cut -d: -f1 || true)"
+    if [[ -n "$n" ]]; then tail -n +"$n" "$CLAUDE_DIR/CLAUDE.md" > "$CLAUDE_DIR/CLAUDE.work.md"; echo "  split    company section -> $CLAUDE_DIR/CLAUDE.work.md"; fi
+  fi
+  [[ -f "$CLAUDE_DIR/CLAUDE.work.md" ]] || { printf '# Work context\n\n(company-specific instructions, kept out of the public skills repo)\n' > "$CLAUDE_DIR/CLAUDE.work.md"; echo "  created  $CLAUDE_DIR/CLAUDE.work.md (empty stub)"; }
+  link_one "$REPO_DIR/claude/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md"
+  for f in "$REPO_DIR"/claude/commands/*.md; do link_one "$f" "$CLAUDE_DIR/commands/$(basename "$f")"; done
+  for d in "$REPO_DIR"/claude/scripts/*/; do link_one "${d%/}" "$CLAUDE_DIR/scripts/$(basename "$d")"; done
+  echo
+fi

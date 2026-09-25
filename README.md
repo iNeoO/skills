@@ -15,6 +15,7 @@ They encode one opinion: **every feature should land with the simplest pattern t
 | [`pnpm-monorepo`](skills/pnpm-monorepo/SKILL.md) | Workspace layout, dependency-direction rules (DAG), `workspace:`/`catalog:`, shared tsconfig, where new code belongs |
 | [`hono-api`](skills/hono-api/SKILL.md) | Chained routes for RPC inference, zod validation at every edge, single error envelope, evolution-proof REST conventions, testing |
 | [`tanstack-start`](skills/tanstack-start/SKILL.md) | File routes + loaders with TanStack Query, validated server functions, typesafe search params, mutation invalidation, SSR/hydration pitfalls |
+| [`browser-drive`](skills/browser-drive/SKILL.md) | Drive a visible Chromium over CDP with playwright-core: the user logs in, the agent fills forms and edits pages (LinkedIn map included) |
 
 How they fit together:
 
@@ -45,6 +46,26 @@ Options:
 ./install.sh --force          # replace existing skills with the same name (backs them up to *.bak)
 ./install.sh --target <dir>   # install into a custom directory
 ```
+
+## Personal Claude Code config (`claude/`)
+
+The repo is also the source of truth for the personal part of the Claude Code setup, so every
+dev machine gets the same environment:
+
+```
+claude/
+├── CLAUDE.md          # global instructions (skill routing table) — imports ~/.claude/CLAUDE.work.md
+├── commands/          # personal slash commands (audit-fix)
+└── scripts/           # helpers used by those commands
+```
+
+```sh
+./install.sh --dotfiles   # links CLAUDE.md, commands/ and scripts/ into ~/.claude (backs up existing files to *.bak)
+```
+
+Company-specific instructions never go here: `claude/CLAUDE.md` ends with `@~/.claude/CLAUDE.work.md`,
+a local file `--dotfiles` creates on first run (it moves any `# … Company Context` section of the
+previous CLAUDE.md into it). Keep that file, `settings.json` and work-only skills in a private repo.
 
 ## Usage
 
